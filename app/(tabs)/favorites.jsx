@@ -1,4 +1,4 @@
-import { View, Text, SafeAreaView, StyleSheet, ScrollView, ActivityIndicator, ToastAndroid, Platform, Alert, Image } from 'react-native';
+import { View, Text, SafeAreaView, StyleSheet, ScrollView, ActivityIndicator, ToastAndroid, Platform, Alert, Image, TouchableOpacity } from 'react-native';
 import { useAuth } from '@clerk/clerk-expo';
 import Colors from '../../constants/Colors';
 import { useState, useEffect } from 'react';
@@ -72,6 +72,12 @@ export default function FavoritesScreen() {
     }
   };
 
+  const handleRemoveFavorite = async (id) => {
+    const newFavorites = favorites.filter(pet => pet.id !== id);
+    setFavorites(newFavorites);
+    await AsyncStorage.setItem('favorites', JSON.stringify(newFavorites));
+  };
+
   const renderContent = () => {
     if (isLoading) {
       return (
@@ -112,6 +118,12 @@ export default function FavoritesScreen() {
               <Text style={styles.petPrice}>{pet.price}</Text>
               <Text style={styles.petCategory}>{pet.category}</Text>
             </View>
+            <TouchableOpacity
+              style={styles.removeBtn}
+              onPress={() => handleRemoveFavorite(pet.id)}
+            >
+              <Text style={styles.removeBtnText}>Remove</Text>
+            </TouchableOpacity>
           </View>
         ))}
       </View>
@@ -244,5 +256,17 @@ const styles = StyleSheet.create({
     color: Colors.GRAY,
     fontSize: 13,
     marginTop: 2,
+  },
+  removeBtn: {
+    marginLeft: 10,
+    paddingVertical: 4,
+    paddingHorizontal: 10,
+    backgroundColor: '#ffdddd',
+    borderRadius: 6,
+  },
+  removeBtnText: {
+    color: '#d00',
+    fontWeight: 'bold',
+    fontSize: 13,
   },
 });
