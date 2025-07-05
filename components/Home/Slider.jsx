@@ -11,7 +11,7 @@ import {
 import { collection, query, getDocs } from 'firebase/firestore';
 import { db } from '../../config/FirebaseConfig';
 
-const windowWidth = Dimensions.get('window').width;
+const { width } = Dimensions.get('window');
 
 export default function Slider() {
   const [sliderList, setSliderList] = useState([]);
@@ -85,13 +85,18 @@ export default function Slider() {
         data={sliderList}
         horizontal
         pagingEnabled
-        snapToInterval={windowWidth * 0.9 + 15} // image width + marginRight
+        snapToInterval={width * 0.9 + 15} // image width + marginRight
         decelerationRate="fast"
         showsHorizontalScrollIndicator={false}
         keyExtractor={(_, index) => index.toString()}
         onViewableItemsChanged={onViewableItemsChanged.current}
         viewabilityConfig={viewConfigRef.current}
         contentContainerStyle={{ paddingHorizontal: 10 }}
+        getItemLayout={(_, index) => ({
+          length: width,
+          offset: width * index,
+          index,
+        })}
         renderItem={({ item }) => (
           <Image
             source={{ uri: item.imageUrl }}
@@ -136,7 +141,7 @@ const styles = StyleSheet.create({
     fontFamily: 'outfit-regular',
   },
   image: {
-    width: windowWidth * 0.9,
+    width: width * 0.9,
     height: 300,
     marginRight: 15,
     borderRadius: 15,

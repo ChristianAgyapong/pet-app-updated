@@ -14,6 +14,8 @@ import Header from '../../components/Home/Header';
 import Slider from '../../components/Home/Slider';
 import PetListByCategory from '../../components/Home/PetListByCategory';
 
+import HowItWorksSection from '../../components/Home/HowItWorksSection';
+
 export default function Home() {
   const [selectedCategory, setSelectedCategory] = useState('none');
   const [scale] = useState(new Animated.Value(1));
@@ -42,6 +44,7 @@ export default function Home() {
       contentContainerStyle={{ padding: 20, paddingBottom: 30, backgroundColor: '#F8FAFC' }}
       showsVerticalScrollIndicator={false}
     >
+      {/* <FeaturedPetBanner /> */} {/* Remove or comment out this line */}
       <Header greeting={greeting} />
       <Slider />
       <PetListByCategory
@@ -58,6 +61,7 @@ export default function Home() {
           <Text style={styles.addNewPetText}>Add New Pet</Text>
         </TouchableOpacity>
       </Animated.View>
+      <HowItWorksSection />
     </ScrollView>
   );
 }
