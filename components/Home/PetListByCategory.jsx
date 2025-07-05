@@ -182,7 +182,12 @@ const pets = [
   },
 ];
 
-export default function PetListByCategory({ selectedCategory, setSelectedCategory }) {
+export default function PetListByCategory({
+  selectedCategory,
+  setSelectedCategory,
+  selectedPet,
+  setSelectedPet
+}) {
   const [filteredPets, setFilteredPets] = useState([]);
   const [loading, setLoading] = useState(false);
   const [selectedPetId, setSelectedPetId] = useState(null);
@@ -235,12 +240,15 @@ export default function PetListByCategory({ selectedCategory, setSelectedCategor
   };
 
   const renderPetCard = ({ item }) => {
-    const isSelected = item.id === selectedPetId;
+    const isSelected = selectedPet && selectedPet.id === item.id;
     return (
       <TouchableOpacity
-        activeOpacity={0.8}
-        style={[styles.petCard, isSelected && styles.selectedPetCard]}
-        onPress={() => handlePetPress(item.id)}
+        activeOpacity={0.85}
+        style={[
+          styles.petCard,
+          isSelected && { borderColor: '#007AFF', borderWidth: 2 }
+        ]}
+        onPress={() => setSelectedPet(item)}
       >
         <ImageBackground
           source={{ uri: item.imageUrl }}

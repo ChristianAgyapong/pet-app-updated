@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -6,22 +6,46 @@ import {
   StyleSheet,
   Alert,
   ScrollView,
-  Platform,
   Animated
 } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import Header from '../../components/Home/Header';
 import Slider from '../../components/Home/Slider';
 import PetListByCategory from '../../components/Home/PetListByCategory';
-
 import HowItWorksSection from '../../components/Home/HowItWorksSection';
+import TestimonialsSection from '../../components/Home/TestimonialsSection';
+import QuickActionsSection from '../../components/Home/QuickActionsSection';
 
 export default function Home() {
   const [selectedCategory, setSelectedCategory] = useState('none');
+  const [selectedPet, setSelectedPet] = useState(null);
+  const [favorites, setFavorites] = useState([]);
   const [scale] = useState(new Animated.Value(1));
 
+  // Load favorites from AsyncStorage on mount
+  useEffect(() => {
+    AsyncStorage.getItem('favorites').then(data => {
+      if (data) setFavorites(JSON.parse(data));
+    });
+  }, []);
+
+  // Save favorites to AsyncStorage when changed
+  useEffect(() => {
+    AsyncStorage.setItem('favorites', JSON.stringify(favorites));
+  }, [favorites]);
+
   const handleAddNewPet = () => {
-    Alert.alert('Add New Pet', 'This is where you would navigate to add a new pet!');
+    if (!selectedPet) {
+      Alert.alert('No Pet Selected', 'Please select a pet to add to favorites.');
+      return;
+    }
+    if (favorites.some(pet => pet.id === selectedPet.id)) {
+      Alert.alert('Already Added', 'This pet is already in your favorites.');
+      return;
+    }
+    setFavorites(prev => [...prev, selectedPet]);
+    Alert.alert('Added to Favorites', `${selectedPet.name} has been added to your favorites!`);
   };
 
   const animateButton = () => {
@@ -44,12 +68,13 @@ export default function Home() {
       contentContainerStyle={{ padding: 20, paddingBottom: 30, backgroundColor: '#F8FAFC' }}
       showsVerticalScrollIndicator={false}
     >
-      {/* <FeaturedPetBanner /> */} {/* Remove or comment out this line */}
       <Header greeting={greeting} />
       <Slider />
       <PetListByCategory
         selectedCategory={selectedCategory}
         setSelectedCategory={setSelectedCategory}
+        selectedPet={selectedPet}
+        setSelectedPet={setSelectedPet}
       />
       <Animated.View style={{ transform: [{ scale }], marginTop: 10 }}>
         <TouchableOpacity
@@ -62,6 +87,8 @@ export default function Home() {
         </TouchableOpacity>
       </Animated.View>
       <HowItWorksSection />
+      <TestimonialsSection />
+      <QuickActionsSection />
     </ScrollView>
   );
 }

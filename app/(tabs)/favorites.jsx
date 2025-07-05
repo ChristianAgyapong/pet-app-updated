@@ -1,23 +1,27 @@
-import { View, Text, SafeAreaView, StyleSheet, ScrollView, ActivityIndicator } from 'react-native';
+import { View, Text, SafeAreaView, StyleSheet, ScrollView, ActivityIndicator, ToastAndroid, Platform, Alert, Image } from 'react-native';
 import { useAuth } from '@clerk/clerk-expo';
 import Colors from '../../constants/Colors';
 import { useState, useEffect } from 'react';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useIsFocused } from '@react-navigation/native';
 
 export default function FavoritesScreen() {
   const { user } = useAuth();
+  const isFocused = useIsFocused();
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
   const [favorites, setFavorites] = useState([]);
+  const [lastAddedPet, setLastAddedPet] = useState(null);
+  const [isAdding, setIsAdding] = useState(false); // <-- Add this
 
   useEffect(() => {
     const loadFavorites = async () => {
       try {
         setIsLoading(true);
         setError(null);
-        // Here you would normally fetch favorites from your backend
-        // For now, we'll just simulate a delay
-        await new Promise(resolve => setTimeout(resolve, 1000));
-        setFavorites([]);
+        // Load favorites from AsyncStorage
+        const data = await AsyncStorage.getItem('favorites');
+        setFavorites(data ? JSON.parse(data) : []);
       } catch (err) {
         setError('Failed to load favorites');
         console.error('Error loading favorites:', err);
@@ -27,7 +31,46 @@ export default function FavoritesScreen() {
     };
 
     loadFavorites();
-  }, [user]);
+  }, [user, isFocused]);
+
+  const handleAddNewPet = async () => {
+    if (!selectedPet) {
+      Alert.alert('No Pet Selected', 'Please select a pet to add to favorites.');
+      return;
+    }
+    if (favorites.some(pet => pet.id === selectedPet.id)) {
+      Alert.alert('Already Added', 'This pet is already in your favorites.');
+      return;
+    }
+    if (favorites.length >= 10) {
+      Alert.alert('Limit Reached', 'You can only have up to 10 favorites.');
+      return;
+    }
+    setIsAdding(true); // Start loading
+    // Simulate async add (e.g., saving to AsyncStorage or backend)
+    setTimeout(() => {
+      setFavorites(prev => [...prev, selectedPet]);
+      setLastAddedPet(selectedPet);
+      setIsAdding(false); // Stop loading
+      if (Platform.OS === 'android') {
+        ToastAndroid.showWithGravityAndOffset(
+          `${selectedPet.name} added to favorites! (Undo)`,
+          ToastAndroid.LONG,
+          ToastAndroid.BOTTOM,
+          0, 100
+        );
+      }
+      // For iOS, use a custom Snackbar/Toast library
+    }, 1000); // Simulate 1s loading
+  };
+
+  // Add undo logic (e.g., a button in your UI or a custom Snackbar)
+  const handleUndo = () => {
+    if (lastAddedPet) {
+      setFavorites(prev => prev.filter(pet => pet.id !== lastAddedPet.id));
+      setLastAddedPet(null);
+    }
+  };
 
   const renderContent = () => {
     if (isLoading) {
@@ -56,7 +99,21 @@ export default function FavoritesScreen() {
 
     return (
       <View style={styles.content}>
-        {/* Favorites list will go here when implemented */}
+        {favorites.map(pet => (
+          <View key={pet.id} style={styles.petCard}>
+            <Image
+              source={{ uri: pet.imageUrl }}
+              style={styles.petImage}
+              resizeMode="cover"
+            />
+            <View style={styles.petInfo}>
+              <Text style={styles.petName}>{pet.name}</Text>
+              <Text style={styles.petBreed}>{pet.breed}</Text>
+              <Text style={styles.petPrice}>{pet.price}</Text>
+              <Text style={styles.petCategory}>{pet.category}</Text>
+            </View>
+          </View>
+        ))}
       </View>
     );
   };
@@ -70,6 +127,12 @@ export default function FavoritesScreen() {
             Pets you've marked as favorites will appear here
           </Text>
         </View>
+        {isAdding && (
+          <View style={styles.addingOverlay}>
+            <ActivityIndicator size="large" color={Colors.PRIMARY} />
+            <Text style={{ marginTop: 10, color: Colors.PRIMARY }}>Adding to favorites...</Text>
+          </View>
+        )}
         {renderContent()}
       </ScrollView>
     </SafeAreaView>
@@ -125,5 +188,61 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: Colors.ERROR || 'red',
     textAlign: 'center',
-  }
+  },
+  addingOverlay: {
+    position: 'absolute',
+    top: 120,
+    left: 0,
+    right: 0,
+    zIndex: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(255,255,255,0.7)',
+    paddingVertical: 30,
+  },
+  petCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: Colors.WHITE,
+    borderRadius: 12,
+    marginBottom: 16,
+    padding: 12,
+    elevation: 2,
+    shadowColor: Colors.BLACK,
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.08,
+    shadowRadius: 2,
+    width: '100%',
+  },
+  petImage: {
+    width: 70,
+    height: 70,
+    borderRadius: 10,
+    backgroundColor: '#eee',
+    marginRight: 16,
+  },
+  petInfo: {
+    flex: 1,
+  },
+  petName: {
+    fontWeight: 'bold',
+    fontSize: 16,
+    color: Colors.BLACK,
+  },
+  petBreed: {
+    color: Colors.GRAY,
+    fontSize: 14,
+    marginTop: 2,
+  },
+  petPrice: {
+    color: Colors.PRIMARY,
+    fontWeight: 'bold',
+    fontSize: 15,
+    marginTop: 4,
+  },
+  petCategory: {
+    color: Colors.GRAY,
+    fontSize: 13,
+    marginTop: 2,
+  },
 });
