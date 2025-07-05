@@ -23,7 +23,7 @@ const CategoryItem = React.memo(({ item, isSelected, onPress }) => {
 
   useEffect(() => {
     Animated.spring(scale, {
-      toValue: isSelected ? 1.05 : 1,
+      toValue: isSelected ? 1.1 : 1,
       friction: 5,
       useNativeDriver: true,
     }).start();
@@ -35,15 +35,27 @@ const CategoryItem = React.memo(({ item, isSelected, onPress }) => {
       activeOpacity={0.8}
       accessibilityLabel={`Select ${item.name} category`}
       accessible={true}
-      style={{ transform: [{ scale }] }}
+      style={{
+        transform: [{ scale }],
+        borderWidth: isSelected ? 2 : 0,
+        borderColor: isSelected ? '#007AFF' : 'transparent',
+        backgroundColor: isSelected ? '#E3F0FF' : '#fff',
+        borderRadius: 16,
+        marginHorizontal: 6,
+        padding: 8,
+      }}
     >
-      <View style={[styles.categoryImage, isSelected && styles.selectedCategory]}>
+      <View style={{ alignItems: 'center' }}>
         <Image
           source={{ uri: item.imageUrl }}
           style={{ width: 40, height: 40 }}
           resizeMode="contain"
         />
-        <Text style={[styles.categoryName, isSelected && styles.selectedCategoryText]}>
+        <Text style={{
+          fontWeight: isSelected ? 'bold' : 'normal',
+          color: isSelected ? '#007AFF' : '#333',
+          marginTop: 4,
+        }}>
           {item.name}
         </Text>
       </View>

@@ -5,39 +5,59 @@ import {
   TouchableOpacity,
   StyleSheet,
   Alert,
-  ScrollView
+  ScrollView,
+  Platform,
+  Animated
 } from 'react-native';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import Header from '../../components/Home/Header';
 import Slider from '../../components/Home/Slider';
 import PetListByCategory from '../../components/Home/PetListByCategory';
 
-
 export default function Home() {
   const [selectedCategory, setSelectedCategory] = useState('none');
+  const [scale] = useState(new Animated.Value(1));
 
   const handleAddNewPet = () => {
     Alert.alert('Add New Pet', 'This is where you would navigate to add a new pet!');
   };
 
+  const animateButton = () => {
+    Animated.sequence([
+      Animated.spring(scale, { toValue: 0.95, useNativeDriver: true }),
+      Animated.spring(scale, { toValue: 1, useNativeDriver: true }),
+    ]).start();
+    handleAddNewPet();
+  };
+
+  // Greeting based on time
+  const hour = new Date().getHours();
+  let greeting = 'Welcome';
+  if (hour < 12) greeting = 'Good morning';
+  else if (hour < 18) greeting = 'Good afternoon';
+  else greeting = 'Good evening';
+
   return (
     <ScrollView
-      contentContainerStyle={{ padding: 20, paddingBottom: 30 }}
+      contentContainerStyle={{ padding: 20, paddingBottom: 30, backgroundColor: '#F8FAFC' }}
       showsVerticalScrollIndicator={false}
     >
-      <Header />
+      <Header greeting={greeting} />
       <Slider />
-
-      {/* Pet list includes category selection inside it */}
       <PetListByCategory
         selectedCategory={selectedCategory}
         setSelectedCategory={setSelectedCategory}
       />
-
-      <TouchableOpacity style={styles.addNewPetBtn} onPress={handleAddNewPet}>
-        <Icon name="dog" size={20} color="#FFD700" style={{ marginRight: 8 }} />
-        <Text style={styles.addNewPetText}>Add New Pet</Text>
-      </TouchableOpacity>
+      <Animated.View style={{ transform: [{ scale }], marginTop: 10 }}>
+        <TouchableOpacity
+          style={styles.addNewPetBtn}
+          onPress={animateButton}
+          activeOpacity={0.85}
+        >
+          <Icon name="dog" size={20} color="#FFD700" style={{ marginRight: 8 }} />
+          <Text style={styles.addNewPetText}>Add New Pet</Text>
+        </TouchableOpacity>
+      </Animated.View>
     </ScrollView>
   );
 }
@@ -51,6 +71,11 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     alignItems: 'center',
     justifyContent: 'center',
+    shadowColor: '#007AFF',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.15,
+    shadowRadius: 6,
+    elevation: 3,
   },
   addNewPetText: {
     color: '#fff',
