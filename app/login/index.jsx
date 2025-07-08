@@ -9,7 +9,9 @@ import {
   ActivityIndicator,
   Animated,
   Dimensions,
-  StyleSheet
+  StyleSheet,
+  StatusBar,
+  Alert
 } from 'react-native'
 import React, { useCallback, useEffect, useState, useRef } from "react";
 import Colors from '../../constants/Colors'
@@ -20,7 +22,7 @@ import * as AuthSession from 'expo-auth-session'
 import { useRouter } from 'expo-router'
 import { Modal } from 'react-native';
 
-const { width } = Dimensions.get('window')
+const { width, height } = Dimensions.get('window')
 
 // Complete any pending auth sessions
 if (Platform.OS !== 'web') {
@@ -34,8 +36,8 @@ const styles = StyleSheet.create({
   },
   heroContainer: {
     width: '100%',
-    maxWidth: 480, // Increased for web
-    height: Platform.select({ web: 420, default: 320 }), // Increased for both
+    maxWidth: 480,
+    height: Platform.select({ web: 420, default: 320 }),
     backgroundColor: Colors.PRIMARY_LIGHT,
     borderBottomLeftRadius: 32,
     borderBottomRightRadius: 32,
@@ -54,17 +56,17 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   heroImage: {
-    width: Platform.select({ web: 300, default: 220 }), // Larger on web, still bigger on mobile
+    width: Platform.select({ web: 300, default: 220 }),
     height: Platform.select({ web: 300, default: 220 }),
     borderRadius: Platform.select({ web: 150, default: 110 }),
     marginBottom: 0,
   },
   floatingBox: {
     position: 'absolute',
-    width: Platform.select({ web: 60, default: 45 }), // Reduced size
-    height: Platform.select({ web: 60, default: 45 }), // Reduced size
+    width: Platform.select({ web: 60, default: 45 }),
+    height: Platform.select({ web: 60, default: 45 }),
     backgroundColor: Colors.WHITE,
-    borderRadius: Platform.select({ web: 16, default: 12 }), // Adjusted border radius
+    borderRadius: Platform.select({ web: 16, default: 12 }),
     justifyContent: 'center',
     alignItems: 'center',
     shadowColor: Colors.BLACK,
@@ -117,57 +119,90 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     width: '100%',
   },
-  addButton: {
-    position: 'absolute',
-    bottom: 10,
-    right: 10,
-    zIndex: 2,
-    backgroundColor: Colors.BACKGROUND,
-    borderRadius: 20,
-    padding: 2,
-  },
-  title: {
-    fontSize: 28,
-    fontWeight: 'bold',
-    color: Colors.BLACK,
-    marginBottom: 10,
-    fontFamily: 'Poppins-Bold',
-    textAlign: 'center',
-  },
-  subtitle: {
-    fontSize: 16,
-    color: Colors.GRAY,
-    fontFamily: 'Poppins-Regular',
-    textAlign: 'center',
-    marginBottom: 30,
-  },
   ctaButton: {
-    backgroundColor: Colors.PRIMARY, // Yellow background
-    paddingVertical: 16,
+    backgroundColor: Colors.PRIMARY,
+    padding: Platform.select({ web: 20, default: 16 }),
     borderRadius: 12,
+    flexDirection: 'row',
     alignItems: 'center',
-    marginTop: 20,
-    marginBottom: 10,
+    justifyContent: 'center',
+    shadowColor: Colors.BLACK,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 3,
+    marginTop: 20
   },
   ctaButtonText: {
-    color: Colors.BLACK, // Black text for contrast
-    fontSize: 18,
-    fontFamily: 'Poppins-Bold',
+    color: Colors.WHITE,
+    fontSize: Platform.select({ web: 18, default: 16 }),
+    fontFamily: 'outfit-bold'
   },
   loadingOverlay: {
     position: 'absolute',
-    top: 0, left: 0, right: 0, bottom: 0,
-    backgroundColor: 'rgba(255,255,255,0.7)',
+    top: 0, 
+    left: 0, 
+    right: 0, 
+    bottom: 0,
+    backgroundColor: 'rgba(0,0,0,0.5)',
     justifyContent: 'center',
     alignItems: 'center',
-    zIndex: 99,
+    zIndex: 999,
+  },
+  loadingContainer: {
+    backgroundColor: Colors.WHITE,
+    borderRadius: 16,
+    padding: 30,
+    alignItems: 'center',
+    minWidth: 200,
+    shadowColor: Colors.BLACK,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 10,
+    elevation: 8,
   },
   loadingText: {
     marginTop: 16,
     fontSize: 16,
-    color: Colors.BLACK, // Changed from Colors.PRIMARY to Colors.BLACK
-    fontFamily: 'Poppins-Bold',
+    color: Colors.BLACK,
+    fontFamily: 'outfit-bold',
   },
+  errorContainer: {
+    backgroundColor: '#FFE5E5',
+    borderRadius: 8,
+    padding: 12,
+    marginTop: 10,
+    borderLeftWidth: 4,
+    borderLeftColor: '#FF4444'
+  },
+  errorText: {
+    color: '#CC0000',
+    fontSize: 14,
+    fontFamily: 'outfit-regular',
+  },
+  retryButton: {
+    backgroundColor: Colors.PRIMARY,
+    paddingHorizontal: 20,
+    paddingVertical: 8,
+    borderRadius: 8,
+    marginTop: 10,
+    alignSelf: 'center'
+  },
+  retryButtonText: {
+    color: Colors.WHITE,
+    fontSize: 14,
+    fontFamily: 'outfit-bold'
+  },
+  gradientOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(0,0,0,0.03)',
+    borderBottomLeftRadius: 32,
+    borderBottomRightRadius: 32,
+  }
 });
 
 if (Platform.OS !== 'web') {
@@ -182,6 +217,25 @@ export default function LoginScreen() {
   const [error, setError] = useState(null);
   const buttonScale = new Animated.Value(1);
 
+  // Animation refs
+  const fadeAnim = useRef(new Animated.Value(0)).current;
+  const slideAnim = useRef(new Animated.Value(50)).current;
+  const box1Anim = useRef(new Animated.Value(0)).current;
+  const box2Anim = useRef(new Animated.Value(0)).current;
+  const box3Anim = useRef(new Animated.Value(0)).current;
+  const box4Anim = useRef(new Animated.Value(0)).current;
+  const pulseAnim = useRef(new Animated.Value(1)).current;
+
+  // Set status bar style
+  useEffect(() => {
+    if (Platform.OS !== 'web') {
+      StatusBar.setBarStyle('dark-content', true);
+      if (Platform.OS === 'android') {
+        StatusBar.setBackgroundColor(Colors.PRIMARY_LIGHT, true);
+      }
+    }
+  }, []);
+
   // Clear any existing sessions on component mount
   useEffect(() => {
     const clearSessions = async () => {
@@ -193,7 +247,6 @@ export default function LoginScreen() {
           console.log('Error clearing sessions:', error);
         }
       } else {
-        // On web, just try to sign out
         try {
           await signOut();
         } catch (error) {
@@ -204,7 +257,6 @@ export default function LoginScreen() {
     
     clearSessions();
     
-    // Cleanup function - only run coolDownAsync on native
     return () => {
       if (Platform.OS !== 'web') {
         WebBrowser.coolDownAsync().catch(console.error);
@@ -212,6 +264,7 @@ export default function LoginScreen() {
     };
   }, [signOut]);
 
+  // Enhanced authentication with better error handling
   const onPress = useCallback(async () => {
     try {
       setIsLoading(true);
@@ -238,26 +291,27 @@ export default function LoginScreen() {
 
       if (createdSessionId) {
         await setActive({ session: createdSessionId });
-        // Direct navigation to home screen
         router.push('/(tabs)/home');
       }
     } catch (err) {
       console.error('Auth error:', err);
-      setError(err.message);
+      let errorMessage = 'Authentication failed. Please try again.';
+      
+      if (err.message?.includes('network')) {
+        errorMessage = 'Network error. Please check your connection and try again.';
+      } else if (err.message?.includes('cancelled')) {
+        errorMessage = 'Sign-in was cancelled. Please try again.';
+      } else if (err.message?.includes('timeout')) {
+        errorMessage = 'Request timed out. Please try again.';
+      }
+      
+      setError(errorMessage);
     } finally {
       setIsLoading(false);
     }
   }, [startSSOFlow, signOut, router]);
 
-  // New animations
-  const fadeAnim = useRef(new Animated.Value(0)).current
-  const slideAnim = useRef(new Animated.Value(50)).current
-
-  // Add new animations for floating boxes
-  const box1Anim = useRef(new Animated.Value(0)).current;
-  const box2Anim = useRef(new Animated.Value(0)).current;
-  const box3Anim = useRef(new Animated.Value(0)).current;
-
+  // Enhanced animations
   useEffect(() => {
     Animated.parallel([
       Animated.timing(fadeAnim, {
@@ -271,9 +325,26 @@ export default function LoginScreen() {
         friction: 7,
         useNativeDriver: true,
       })
-    ]).start()
-  }, [])
+    ]).start();
 
+    // Pulse animation for main image
+    Animated.loop(
+      Animated.sequence([
+        Animated.timing(pulseAnim, {
+          toValue: 1.05,
+          duration: 2000,
+          useNativeDriver: true,
+        }),
+        Animated.timing(pulseAnim, {
+          toValue: 1,
+          duration: 2000,
+          useNativeDriver: true,
+        }),
+      ])
+    ).start();
+  }, []);
+
+  // Enhanced floating box animations
   useEffect(() => {
     const animateBoxes = () => {
       Animated.loop(
@@ -294,6 +365,11 @@ export default function LoginScreen() {
               duration: 1800,
               useNativeDriver: true,
             }),
+            Animated.timing(box4Anim, {
+              toValue: 1,
+              duration: 2200,
+              useNativeDriver: true,
+            }),
           ]),
           Animated.parallel([
             Animated.timing(box1Anim, {
@@ -311,6 +387,11 @@ export default function LoginScreen() {
               duration: 1800,
               useNativeDriver: true,
             }),
+            Animated.timing(box4Anim, {
+              toValue: 0,
+              duration: 2200,
+              useNativeDriver: true,
+            }),
           ]),
         ])
       ).start();
@@ -319,7 +400,6 @@ export default function LoginScreen() {
     animateBoxes();
   }, []);
 
-  // Add these handlers to fix the error
   const onPressIn = () => {
     Animated.spring(buttonScale, {
       toValue: 0.96,
@@ -334,9 +414,19 @@ export default function LoginScreen() {
     }).start();
   };
 
-  // Update the Pressable to use animation
+  const handleRetry = () => {
+    setError(null);
+    onPress();
+  };
+
   return (
     <SafeAreaView style={styles.container}>
+      <StatusBar 
+        barStyle="dark-content" 
+        backgroundColor={Colors.PRIMARY_LIGHT} 
+        translucent={false}
+      />
+      
       <ScrollView
         contentContainerStyle={{
           flexGrow: 1,
@@ -345,30 +435,44 @@ export default function LoginScreen() {
           paddingVertical: 40,
         }}
         keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
       >
-        {/* Hero Section */}
+        {/* Enhanced Hero Section */}
         <View style={styles.heroContainer}>
+          <View style={styles.gradientOverlay} />
+          
           <Animated.View style={[styles.imageContainer, {
             opacity: fadeAnim,
-            transform: [{ translateY: slideAnim }]
+            transform: [
+              { translateY: slideAnim },
+              { scale: pulseAnim }
+            ]
           }]}>
             <Image
               source={require('../../assets/images/pet1.jpg')}
               style={styles.heroImage}
             />
 
-            {/* Top Left - Dog Icon */}
+            {/* Enhanced floating boxes with better positioning */}
             <Animated.View style={[
               styles.floatingBox,
               {
                 top: Platform.select({ web: -30, default: -20 }),
                 left: Platform.select({ web: -30, default: -20 }),
-                transform: [{
-                  translateY: box1Anim.interpolate({
-                    inputRange: [0, 1],
-                    outputRange: [0, 15]
-                  })
-                }]
+                transform: [
+                  {
+                    translateY: box1Anim.interpolate({
+                      inputRange: [0, 1],
+                      outputRange: [0, 15]
+                    })
+                  },
+                  {
+                    rotate: box1Anim.interpolate({
+                      inputRange: [0, 1],
+                      outputRange: ['0deg', '5deg']
+                    })
+                  }
+                ]
               }
             ]}>
               <MaterialCommunityIcons 
@@ -378,18 +482,25 @@ export default function LoginScreen() {
               />
             </Animated.View>
 
-            {/* Top Right - Cat Icon */}
             <Animated.View style={[
               styles.floatingBox,
               {
                 top: Platform.select({ web: -20, default: -10 }),
                 right: Platform.select({ web: -30, default: -20 }),
-                transform: [{
-                  translateY: box2Anim.interpolate({
-                    inputRange: [0, 1],
-                    outputRange: [0, 10]
-                  })
-                }]
+                transform: [
+                  {
+                    translateY: box2Anim.interpolate({
+                      inputRange: [0, 1],
+                      outputRange: [0, 10]
+                    })
+                  },
+                  {
+                    rotate: box2Anim.interpolate({
+                      inputRange: [0, 1],
+                      outputRange: ['0deg', '-5deg']
+                    })
+                  }
+                ]
               }
             ]}>
               <MaterialCommunityIcons 
@@ -399,18 +510,25 @@ export default function LoginScreen() {
               />
             </Animated.View>
 
-            {/* Bottom Right - Paw Icon */}
             <Animated.View style={[
               styles.floatingBox,
               {
                 bottom: Platform.select({ web: -30, default: -20 }),
                 right: Platform.select({ web: 20, default: 10 }),
-                transform: [{
-                  translateY: box3Anim.interpolate({
-                    inputRange: [0, 1],
-                    outputRange: [0, -10]
-                  })
-                }]
+                transform: [
+                  {
+                    translateY: box3Anim.interpolate({
+                      inputRange: [0, 1],
+                      outputRange: [0, -10]
+                    })
+                  },
+                  {
+                    rotate: box3Anim.interpolate({
+                      inputRange: [0, 1],
+                      outputRange: ['0deg', '3deg']
+                    })
+                  }
+                ]
               }
             ]}>
               <MaterialCommunityIcons 
@@ -420,18 +538,25 @@ export default function LoginScreen() {
               />
             </Animated.View>
 
-            {/* Bottom Left - Heart Icon */}
             <Animated.View style={[
               styles.floatingBox,
               {
                 bottom: Platform.select({ web: -20, default: -15 }),
                 left: Platform.select({ web: 20, default: 10 }),
-                transform: [{
-                  translateY: box1Anim.interpolate({
-                    inputRange: [0, 1],
-                    outputRange: [0, 12]
-                  })
-                }]
+                transform: [
+                  {
+                    translateY: box4Anim.interpolate({
+                      inputRange: [0, 1],
+                      outputRange: [0, 12]
+                    })
+                  },
+                  {
+                    rotate: box4Anim.interpolate({
+                      inputRange: [0, 1],
+                      outputRange: ['0deg', '-3deg']
+                    })
+                  }
+                ]
               }
             ]}>
               <MaterialCommunityIcons 
@@ -451,7 +576,14 @@ export default function LoginScreen() {
             Find Your Perfect Pet
           </Animated.Text>
 
-          {/* Feature Cards */}
+          <Animated.Text style={[styles.subtitle, { 
+            opacity: fadeAnim,
+            transform: [{ translateY: slideAnim }]
+          }]}>
+            Connect with loving companions waiting for their forever homes
+          </Animated.Text>
+
+          {/* Enhanced Feature Cards */}
           {[
             {
               icon: 'paw',
@@ -473,7 +605,12 @@ export default function LoginScreen() {
               key={index}
               style={[styles.featureCard, {
                 opacity: fadeAnim,
-                transform: [{ translateX: slideAnim }]
+                transform: [{ 
+                  translateX: slideAnim.interpolate({
+                    inputRange: [0, 50],
+                    outputRange: [0, 100]
+                  })
+                }]
               }]}
             >
               <View style={styles.featureIcon}>
@@ -487,14 +624,16 @@ export default function LoginScreen() {
                 <Text style={{ 
                   fontFamily: 'outfit-bold',
                   fontSize: 16,
-                  marginBottom: 4
+                  marginBottom: 4,
+                  color: Colors.BLACK
                 }}>
                   {feature.title}
                 </Text>
                 <Text style={{ 
                   fontFamily: 'outfit-regular',
                   fontSize: 14,
-                  color: Colors.GRAY
+                  color: Colors.GRAY,
+                  lineHeight: 20
                 }}>
                   {feature.desc}
                 </Text>
@@ -502,7 +641,19 @@ export default function LoginScreen() {
             </Animated.View>
           ))}
 
-          {/* CTA Button */}
+          {/* Error Display */}
+          {error && (
+            <Animated.View 
+              style={[styles.errorContainer, { opacity: fadeAnim }]}
+            >
+              <Text style={styles.errorText}>{error}</Text>
+              <Pressable style={styles.retryButton} onPress={handleRetry}>
+                <Text style={styles.retryButtonText}>Try Again</Text>
+              </Pressable>
+            </Animated.View>
+          )}
+
+          {/* Enhanced CTA Button */}
           <Animated.View style={{
             transform: [{ scale: buttonScale }],
             marginTop: 20
@@ -512,66 +663,64 @@ export default function LoginScreen() {
               onPressIn={onPressIn}
               onPressOut={onPressOut}
               disabled={isLoading}
-              style={({ pressed }) => ({
-                backgroundColor: Colors.PRIMARY,
-                padding: Platform.select({ web: 20, default: 16 }),
-                borderRadius: 12,
-                opacity: pressed ? 0.9 : 1,
-                flexDirection: 'row',
-                alignItems: 'center',
-                justifyContent: 'center',
-                shadowColor: Colors.BLACK,
-                shadowOffset: { width: 0, height: 2 },
-                shadowOpacity: 0.2,
-                shadowRadius: 4,
-                elevation: 3
-              })}
+              style={({ pressed }) => [
+                styles.ctaButton,
+                {
+                  opacity: pressed ? 0.9 : 1,
+                  transform: [{ scale: pressed ? 0.98 : 1 }]
+                }
+              ]}
             >
               {isLoading ? (
-                <ActivityIndicator color={Colors.WHITE} />
+                <ActivityIndicator color={Colors.WHITE} size="small" />
               ) : (
                 <>
                   <Ionicons 
-                    name="paw" 
+                    name="logo-google" 
                     size={24} 
                     color={Colors.WHITE} 
                     style={{ marginRight: 8 }}
                   />
-                  <Text style={{
-                    color: Colors.WHITE,
-                    fontSize: Platform.select({ web: 18, default: 16 }),
-                    fontFamily: 'outfit-bold'
-                  }}>
-                    Start Adoption Journey
+                  <Text style={styles.ctaButtonText}>
+                    Continue with Google
                   </Text>
                 </>
               )}
             </Pressable>
           </Animated.View>
+
+          {/* Additional info */}
+          <Animated.Text style={[{
+            textAlign: 'center',
+            marginTop: 20,
+            fontSize: 12,
+            color: Colors.GRAY,
+            fontFamily: 'outfit-regular',
+            opacity: fadeAnim
+          }]}>
+            By continuing, you agree to our Terms of Service and Privacy Policy
+          </Animated.Text>
         </View>
       </ScrollView>
 
-      {/* Improved Loading Overlay */}
+      {/* Enhanced Loading Overlay */}
       {isLoading && (
-        <View style={styles.loadingOverlay}>
-          <ActivityIndicator size="large" color={Colors.PRIMARY} />
-          <Text style={styles.loadingText}>Signing you in...</Text>
-        </View>
+        <Animated.View 
+          style={[styles.loadingOverlay, { opacity: fadeAnim }]}
+        >
+          <View style={styles.loadingContainer}>
+            <ActivityIndicator size="large" color={Colors.PRIMARY} />
+            <Text style={styles.loadingText}>Signing you in...</Text>
+            <Text style={[styles.loadingText, { 
+              fontSize: 14, 
+              color: Colors.GRAY,
+              fontFamily: 'outfit-regular'
+            }]}>
+              Please wait a moment
+            </Text>
+          </View>
+        </Animated.View>
       )}
     </SafeAreaView>
   );
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
