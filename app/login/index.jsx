@@ -698,7 +698,7 @@ export default function LoginScreen() {
             fontFamily: 'outfit-regular',
             opacity: fadeAnim
           }]}>
-            By continuing, you agree to our Terms of Service and Privacy Policy
+            By continuing Christian Agyapong, you agree to our Terms of Service and Privacy Policy
           </Animated.Text>
         </View>
       </ScrollView>
