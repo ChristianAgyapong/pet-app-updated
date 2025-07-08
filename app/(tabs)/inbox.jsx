@@ -158,6 +158,23 @@ export default function InboxScreen() {
             <>
               <View style={styles.chatHeader}>
                 <Text style={styles.chatTitle}>{selectedConversation.name}</Text>
+                <TouchableOpacity
+                  style={styles.deleteBtn}
+                  onPress={() => {
+                    // Confirm before deleting
+                    if (window.confirm) {
+                      if (!window.confirm('Delete this conversation?')) return;
+                    }
+                    // Remove the conversation
+                    const updatedConvs = conversations.filter(
+                      conv => conv.id !== selectedConversation.id
+                    );
+                    setConversations(updatedConvs);
+                    setSelectedConversation(updatedConvs[0] || null);
+                  }}
+                >
+                  <Ionicons name="trash-outline" size={22} color="#d00" />
+                </TouchableOpacity>
               </View>
               <FlatList
                 data={selectedConversation.messages}
@@ -317,6 +334,10 @@ const styles = StyleSheet.create({
     borderBottomColor: '#eee',
   },
   chatTitle: { fontSize: 18, fontWeight: 'bold', color: Colors.PRIMARY },
+  deleteBtn: {
+    marginLeft: 'auto',
+    padding: 8,
+  },
   chatBubble: {
     maxWidth: '80%',
     marginBottom: 14,
